@@ -7,7 +7,12 @@ class MsmpiConan(ConanFile):
     settings = {
         "os": ["Windows"],
         "arch": ["x86", "x86_64"],
-    }    
+    }
+
+    options = {
+        "fortran": [True, False],
+    }
+    default_options = "fortran=False"    
 
     def package_info(self):
         self.cpp_info.includedirs = [os.environ["MSMPI_INC"]]
@@ -16,3 +21,6 @@ class MsmpiConan(ConanFile):
             self.cpp_info.libdirs = [os.environ["MSMPI_LIB32"]]
         else:
             self.cpp_info.libdirs = [os.environ["MSMPI_LIB64"]]
+        
+        if self.options.fortran == True:
+            self.cpp_info.libs.append("msmpifec")

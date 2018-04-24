@@ -17,8 +17,9 @@ class IntelMklConan(ConanFile):
         "cdft": [True, False],
         "scalapack": [True, False],
         "blacs": [True, False],
+		"fortran": [True, False],
     }
-    default_options = "shared=False", "threading=sequential", "interface=int32", "mpi=msmpi", "cluster_pardiso=False", "cdft=False", "scalapack=False", "blacs=False"
+    default_options = "shared=False", "threading=sequential", "interface=int32", "mpi=msmpi", "cluster_pardiso=False", "cdft=False", "scalapack=False", "blacs=False", "fortran=False"
     
     def get_mkl_core_library(self):
         return "mkl_core{}".format(self.lib_suffix)
@@ -56,16 +57,26 @@ class IntelMklConan(ConanFile):
 
     def add_cdft_if_needed(self, libs):
         if self.options.cdft == True:
-            libs.append("libiomp5md") 
+            libs.append("mkl_cdft_core{}".format(self.lib_suffix))  
 
     def add_openmp_if_needed(self, libs):
         if self.options.threading == "openmp":
-            libs.append("mkl_cdft_core{}".format(self.lib_suffix)) 
+            libs.append("libiomp5md") 
+
+    def find_root_folder(self):
+        keys = ["ICPP_COMPILER18", "IFORT_COMPILER18"]
+        for key in keys:
+            if os.environ.get(key) != None:
+                return os.environ[key]
+        
+        raise Exception('Could not determine intel mkl root.')
     
     def package_info(self):
-        mkl_root = os.environ["ICPP_COMPILER18"]
-        self.cpp_info.includedirs = ["{}\\mkl\\include".format(mkl_root)]
-        self.cpp_info.libdirs = ["{}\\mkl\\lib\\intel64_win".format(mkl_root)]
+        root = self.find_root_folder()
+        self.cpp_info.includedirs = ["{}\\mkl\\include".format(root)]
+        self.cpp_info.libdirs = ["{}\\mkl\\lib\\intel64_win".format(root)]
+        if self.options.fortran == True:
+            self.cpp_info.libdirs.append("{}\\compiler\\lib\\intel64_win".format(root))
 
         self.lib_suffix = "" if self.options.shared == False else "_dll"
         self.interface_name = "ilp64" if self.options.interface == "int64" else "lp64"
